@@ -1,0 +1,12 @@
+project:
+  type: website
+  output-dir: docs
+
+format:
+  html:  
+    theme: default  # Can be changed to "cosmo", "darkly", "flatly", etc.
+    toc: true
+    code-overflow: wrap
+    code-tools: true
+    code-fold: true
+    code-summary: "Show code"

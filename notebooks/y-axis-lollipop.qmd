@@ -1,0 +1,152 @@
+# Recreating a Y-axis lollipop chart from a report on SUDORS data
+
+## Starting example
+This notebook contains a best approximation for the following example chart using `ggplot2`.
+
+![Lollipop Example Image](../images/Lollipop-example.png)
+
+### Load required packages
+
+```{r}
+#| Label: setup
+
+# Restore from renv lockfile
+renv::restore()
+
+# Load libraries
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+})
+```
+
+### Simulate data
+Our data needs to contain at least two columns:
+
+1. A column of text values for the labels
+2. A column of data values (i.e. percents).
+
+```{r}
+#| Label: Simulate Data
+
+# Simple simulated dataframe with labels and values columns
+data <- data.frame(
+  Category = c("Current treatment for substance use disorder(s)¹¹",
+               "Fatal drug use witnessed",
+               "Mental health diagnosis",
+               "Potential bystander present¹²",
+               "Prior overdose",
+               "Recent release from institutional setting¹³"),
+  Percentage = c(4.8, 10.1, 28.6, 53.2, 7.9, 10.2)
+)
+```
+
+## Data, Chart, and Labels Preparation
+Some slight modifications were necessary to position elements and labels for mathcing the original chart.
+
+```{r}
+#| Label: Data transformations and chart modification prep
+
+# Sort data to match order of example chart
+data <- data %>%
+  arrange(desc(Category)) %>%  # Reverse alphabetical order
+  mutate(Y_Pos = row_number() - 0.3)  # Adjust label positions slightly downward
+
+# Define x-axis limits with buffer space for labels
+x_max <- max(data$Percentage) + 10  # Add buffer space
+
+# Recreate shorter segments by dynamically adjusting x start point
+min_x_start <- min(data[["Percentage"]], na.rm = TRUE) * 0.5  # Dynamic start position
+```
+
+## Chart Recreation
+
+```{r}
+#| Label: Final recreated y-axis lollipop chart
+
+# Final y-axis lollipop chart code
+ggplot(data, aes(x = Percentage, y = reorder(Category, desc(Category)))) +
+  # Thicker tha default lollipop segment lines starting from a fixed x-location
+  geom_segment(aes(x = min_x_start, xend = Percentage, yend = Category), color = "#8b3d88", linewidth = 2) +
+  # Lollipop points
+  geom_point(color = "#8b3d88", size = 4) +
+  # Percentage labels to the right of points
+  geom_text(aes(label = paste0(Percentage, "%")), hjust = -0.3, 
+            color = "gray20", size = 4) +
+  # Category labels positioned BELOW each line, aligned with segment start
+  geom_text(aes(x = min_x_start, y = Y_Pos, label = Category), hjust = 0, 
+            color = "gray20", size = 4) +
+  # Theme modifications
+  theme_minimal() +
+  labs(x = NULL, y = NULL, 
+       title = "Lollipop Chart Example",
+       subtitle = "Replicating the provided visual in ggplot2") +
+  xlim(min_x_start, x_max) +  # Ensure enough space for labels and a clean cutoff
+  theme(
+    axis.text.y = element_blank(),  # Remove default y-axis labels
+    axis.text.x = element_blank(), 
+    axis.ticks.x = element_blank(), 
+    panel.grid.major.x = element_blank(),  # Remove x-axis gridlines
+    panel.grid.major.y = element_blank(),  # Remove y-axis gridlines
+    panel.grid.minor = element_blank()
+  )
+```
+
+## Functionizing our `ggplot2` code for reuse
+
+```{r}
+#| Label: Functionized chart code
+
+# Required packages
+# library(ggplot2)
+# library(dplyr)
+
+create_y_lollipop <- function(df, percentage_col, label_col, title = "Y-axis Lollipop Chart", subtitle = "Generated dynamically from input dataframe") {
+  # Ensure columns exist
+  if (!(percentage_col %in% names(df)) | !(label_col %in% names(df))) {
+    stop("Specified columns not found in dataframe.")
+  }
+  
+  # Prepare data: Sort labels in reverse alphabetical order
+  df <- df %>%
+    arrange(desc(.data[[label_col]])) %>%
+    mutate(Y_Pos = row_number() - 0.3)
+  
+  # Define x-axis max limit for buffer
+  x_max <- max(df[[percentage_col]], na.rm = TRUE) + 10
+  
+  # Dynamic start position
+  min_x_start <- min(df[[percentage_col]], na.rm = TRUE) * 0.5  
+  
+  # Create lollipop chart
+  ggplot(df, aes(x = .data[[percentage_col]], y = reorder(.data[[label_col]], desc(.data[[label_col]])))) +
+    geom_segment(aes(x = min_x_start, xend = .data[[percentage_col]], yend = .data[[label_col]]), 
+                 color = "#8b3d88", linewidth = 2) +
+    geom_point(color = "#8b3d88", size = 4) +
+    geom_text(aes(label = paste0(.data[[percentage_col]], "%")), 
+              hjust = -0.3, color = "gray20", size = 4) +
+    geom_text(aes(x = min_x_start, y = Y_Pos, label = .data[[label_col]]), 
+              hjust = 0, color = "gray20", size = 4) +
+    theme_minimal() +
+    labs(x = NULL, y = NULL, 
+         title = title,
+         subtitle = subtitle) +
+    xlim(min_x_start, x_max) +
+    theme(
+      axis.text.y = element_blank(),
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+}
+```
+
+This functionized `ggplot2` code should produce the same output as above but with a reusable set of input parameters.
+
+```{r}
+# Call the function with the dataset
+create_y_lollipop(data, percentage_col = "Percentage", label_col = "Category")
+```
+

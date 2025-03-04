@@ -1,0 +1,448 @@
+---
+filters:
+  - ../code-summary-chunk-label.lua
+---
+
+# Reshaping and Combining Multiple DataFrames to Long Format in R
+
+
+::: callout-note
+The data presented in these examples are not real, but are simulated to appear realistic. No sensitive information is displayed, used, or otherwise exposed here.
+:::
+
+## Problem Description
+When working with multiple dataframes containing categorical variables, counts, and percentages, combining them with bind_rows() can introduce a large number of NA values. This happens because each dataframe contains different sets of categorical variables, leading to sparse structures when merged.
+
+For example:
+
+-   One dataframe may contain age groups and their population counts.
+-   Another may include gender breakdowns but no age information.
+-   Others focus on specific mental health diagnoses, with each diagnosis stored in its own separate dataframe.
+
+After using bind_rows(), the result includes many columns filled with NAs because the original dataframes don’t share all the same variables. This makes downstream analysis (such as creating tables and plots) more cumbersome.
+
+## Proposed Solution: Restructuring Before Merging
+
+To make the data more manageable:
+
+1.  Store each diagnosis separately, using:
+
+-   A binary indicator (1 = present, 0 = absent, NA = not applicable).
+-   A count column for how many individuals have that diagnosis.
+-   A percentage column representing the proportion of diagnosed individuals.
+
+2.  Use pivot_longer() after merging to reshape the data into a more compact format, reducing sparsity.
+3.  Ensure consistency in how categorical variables are represented before merging, avoiding unnecessary NAs.
+
+```{r}
+#| Label: setup
+
+# Restore from renv lockfile
+renv::restore()
+
+# Load libraries
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tidyr)
+})
+
+# Disable Python
+knitr::opts_chunk$set(python.reticulate = FALSE)
+
+# Code folding label dynamic set
+# Custom hook to set code-summary based on label
+knitr::opts_hooks$set(label = function(options) {
+  if (!is.null(options$label)) {
+    options$code_summary <- options$label
+  }
+  options
+})
+```
+
+```{r}
+#| label: Simulating Data
+
+# Create a base demographic dataframe with adjusted values
+df_age <- data.frame(
+  age_cat = c("15-24", "25-34", "35-44", "45-54", "55-64", "65+"),
+  count_age_cat = c(6, 18, 25, 12, 19, 2),
+  percent_age_cat = c(5.5, 22.0, 30.0, 14.5, 24.5, 3.5)
+)
+
+# Create a separate dataframe for Sex distribution with modified counts
+df_sex <- data.frame(
+  Sex = c("Female", "Male"),
+  count_sex = c(33, 51),
+  percent_sex = c(39.3, 60.7)
+)
+
+# Define separate dataframes for each diagnosis with modified counts and percentages
+df_adhd <- data.frame(
+  CME_MentalHealthDiagnosis_adhd = c(1, 0, NA),
+  adhd_count = c(10, 3, 55),
+  adhd_percent = c(15.2, 4.5, 80.3)
+)
+
+df_anxiety <- data.frame(
+  CME_MentalHealthDiagnosis_anxiety = c(1, 0, NA),
+  anxiety_count = c(14, 5, 60),
+  anxiety_percent = c(18.9, 6.8, 74.3)
+)
+
+df_ocd <- data.frame(
+  CME_MentalHealthDiagnosis_ocd = c(1, 0, NA),
+  ocd_count = c(9, 4, 38),
+  ocd_percent = c(14.7, 7.5, 77.8)
+)
+
+# List the data frames for reference
+df_list <- list(df_age, df_sex, df_adhd, df_anxiety, df_ocd)
+```
+
+## What NOT to do
+
+It's tempting to combine all your dataframes and send it off to the next poor chum that needs to work with it. But this creates additional challenge in processing the data.
+
+```{r}
+#| label: Bad idea - binding all dataframes into a blob like this one
+
+# Combining data using bind_rows()
+df_combined <- bind_rows(df_list)
+```
+
+Binding these dataframes, or otherwise joining, merging, and combining, introduces a lot of `NA` and tricky, awkward structure to deal with later.
+
+```{r}
+#| echo: false
+# View the structure
+knitr::kable(df_combined)
+```
+
+### Best attempt with combined dataframe
+
+Let's assume I received the combined dataframe without access to the component dataframes. As a logic problem, this combined dataframe is challenging to work with for several reasons:
+
+1.  It requires you to work with a more complex structure
+2.  It's more difficult to apply transformations to a single portion of the dataframe
+3.  You'll have to deal with `NA` as a categorical variable vs `NA` as missing data in diagnosis fields
+4.  You'll need to pull out the diagnosis category from the rest of the column name or define it manually
+
+Here is my best attempt at resolving my processing to look like my desired output for plotting/charting/tabling.
+
+### Bad: Combine dataframe → Process after
+
+This process took me much longer than solving with component dataframes, but it does work and looks tidy.
+
+```{r}
+# Ensure all Variable columns are of type character
+df_combined <- df_combined %>%
+  mutate(age_cat = as.character(age_cat),
+         Sex = as.character(Sex),
+         CME_MentalHealthDiagnosis_adhd = as.character(CME_MentalHealthDiagnosis_adhd),
+         CME_MentalHealthDiagnosis_anxiety = as.character(CME_MentalHealthDiagnosis_anxiety),
+         CME_MentalHealthDiagnosis_ocd = as.character(CME_MentalHealthDiagnosis_ocd))
+
+# Reshape the data to long format
+df_combined_long <- df_combined %>%
+  # Reshape age categories
+  select(age_cat, count_age_cat, percent_age_cat) %>%
+  rename(Variable = age_cat, Count = count_age_cat, Percent = percent_age_cat) %>%
+  mutate(Category = "Age") %>%
+  filter(!is.na(Variable)) %>%
+  bind_rows(
+    # Reshape sex categories
+    df_combined %>%
+      select(Sex, count_sex, percent_sex) %>%
+      rename(Variable = Sex, Count = count_sex, Percent = percent_sex) %>%
+      mutate(Category = "Sex"),
+    # Reshape ADHD categories
+    df_combined %>%
+      select(CME_MentalHealthDiagnosis_adhd, adhd_count, adhd_percent) %>%
+      rename(Variable = CME_MentalHealthDiagnosis_adhd, Count = adhd_count, Percent = adhd_percent) %>%
+      mutate(Category = "ADHD"),
+    # Reshape Anxiety categories
+    df_combined %>%
+      select(CME_MentalHealthDiagnosis_anxiety, anxiety_count, anxiety_percent) %>%
+      rename(Variable = CME_MentalHealthDiagnosis_anxiety, Count = anxiety_count, Percent = anxiety_percent) %>%
+      mutate(Category = "Anxiety"),
+    # Reshape OCD categories
+    df_combined %>%
+      select(CME_MentalHealthDiagnosis_ocd, ocd_count, ocd_percent) %>%
+      rename(Variable = CME_MentalHealthDiagnosis_ocd, Count = ocd_count, Percent = ocd_percent) %>%
+      mutate(Category = "OCD"),
+  ) %>%
+  select(Category, Variable, Count, Percent) %>%
+  filter(!(is.na(Variable) & is.na(Count) & is.na(Percent)))
+```
+
+```{r}
+knitr::kable(df_combined_long)
+```
+
+### Improvements to accomodate more diagnoses
+
+What if we have more than 3 diagnoses columns? What if there were... 17? This cleans up our previous code and makes it more dynamic.
+
+```{r}
+# Ensure all Variable columns are of type character
+df_combined_long_v2 <- df_combined %>%
+  mutate(age_cat = as.character(age_cat),
+         Sex = as.character(Sex))
+
+# Identify diagnosis columns dynamically
+diagnosis_columns <- grep("^CME_MentalHealthDiagnosis_", names(df_combined_long_v2), value = TRUE)
+
+# Function to reshape diagnosis columns
+reshape_diagnosis <- function(diagnosis_col) {
+  count_col <- paste0(sub("CME_MentalHealthDiagnosis_", "", diagnosis_col), "_count")
+  percent_col <- paste0(sub("CME_MentalHealthDiagnosis_", "", diagnosis_col), "_percent")
+  
+  df_combined_long_v2 %>%
+    select(all_of(diagnosis_col), all_of(count_col), all_of(percent_col)) %>%
+    rename(Variable = all_of(diagnosis_col), Count = all_of(count_col), Percent = all_of(percent_col)) %>%
+    mutate(Category = sub("CME_MentalHealthDiagnosis_", "", diagnosis_col))
+}
+
+# Reshape the data to long format
+df_combined_long_v2 <- df_combined_long_v2 %>%
+  # Reshape age categories
+  select(age_cat, count_age_cat, percent_age_cat) %>%
+  rename(Variable = age_cat, Count = count_age_cat, Percent = percent_age_cat) %>%
+  mutate(Category = "Age") %>%
+  bind_rows(
+    # Reshape sex categories
+    df_combined_long_v2 %>%
+      select(Sex, count_sex, percent_sex) %>%
+      rename(Variable = Sex, Count = count_sex, Percent = percent_sex) %>%
+      mutate(Category = "Sex"),
+    # Reshape all diagnosis categories dynamically
+    bind_rows(lapply(diagnosis_columns, reshape_diagnosis))
+  ) %>%
+  select(Category, Variable, Count, Percent) %>%
+  filter(!(is.na(Variable) & is.na(Count) & is.na(Percent)))
+```
+
+```{r}
+knitr::kable(df_combined_long_v2)
+```
+
+## DO this instead - Reshape initial dataframes before combination
+
+Rather than combining all the dataframes right away, we should reshape the component dataframes (the smaller dataframes we need to combine) to match the structure of our expected or desired output first, then combine. This reduces the complexity of our logic by not introducing other odd structure we need to deal with. HOWEVER, this only works if you have received the source dataframes and not a combined one. Work with your upstream collaborators to request the component dataframes if you get a combined dataframe from them.
+
+### Applying transformations to component dataframes before combining
+
+This process might appear longer in the code, but I promise it will be easier to build if you go through this one dataframe at a time. Some of the logic can be applied to multiple dataframes, so some parts below appear redundant (without turning it into functions).
+
+```{r}
+#| label: Step 1 - Convert df_demo (Age Data) to long format
+
+# Step 1: Convert df_demo (Age Data) to long format
+df_age_long <- df_age %>%
+  pivot_longer(
+    cols = c(count_age_cat, percent_age_cat),
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Category = "Age",
+    Variable = as.character(age_cat),  # Ensure Variable is character
+    Metric = case_when(
+      grepl("count", Metric) ~ "Count",
+      grepl("percent", Metric) ~ "Percent"
+    )
+  ) %>%
+  select(Category, Variable, Metric, Value) %>%
+  pivot_wider(names_from = Metric, values_from = Value)
+
+knitr::kable(df_age_long)
+```
+
+```{r}
+#| label: Step 2 - Convert df_sex (Sex Data) to long format
+#| 
+# Step 2: Convert df_sex (Sex Data) to long format
+df_sex_long <- df_sex %>%
+  pivot_longer(
+    cols = c(count_sex, percent_sex),
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Category = "Sex",
+    Variable = as.character(Sex),  # Ensure Variable is character
+    Metric = case_when(
+      grepl("count", Metric) ~ "Count",
+      grepl("percent", Metric) ~ "Percent"
+    )
+  ) %>%
+  select(Category, Variable, Metric, Value) %>%
+  pivot_wider(names_from = Metric, values_from = Value)
+```
+
+```{r}
+#| label: Step 3 - Convert Diagnosis Dataframes to Long Format
+
+# Step 3: Convert Diagnosis Dataframes to Long Format
+convert_diagnosis <- function(df, diagnosis_name) {
+  df %>%
+    rename(Variable = 1) %>%  # Rename first column to "Variable" (1, 0, NA)
+    mutate(Variable = as.character(Variable)) %>%  # Convert to character to match other tables
+    pivot_longer(
+      cols = ends_with("_count") | ends_with("_percent"),  # Match actual column names
+      names_to = "Metric",
+      values_to = "Value"
+    ) %>%
+    mutate(
+      Category = diagnosis_name,
+      Metric = case_when(
+        grepl("_count", Metric) ~ "Count",
+        grepl("_percent", Metric) ~ "Percent"
+      )
+    ) %>%
+    select(Category, Variable, Metric, Value) %>%
+    pivot_wider(names_from = Metric, values_from = Value)
+}
+```
+
+```{r}
+#| label: Convert each diagnosis dataframe, add column name per diagnosis
+
+# Convert each diagnosis dataframe
+df_adhd_long <- convert_diagnosis(df_adhd, "ADHD")
+df_anxiety_long <- convert_diagnosis(df_anxiety, "Anxiety")
+df_ocd_long <- convert_diagnosis(df_ocd, "OCD")
+```
+
+```{r}
+#| label: Step 4 - Combine Everything
+
+# Step 4: Combine Everything
+df_component_long <- bind_rows(df_age_long, df_sex_long, df_adhd_long, df_anxiety_long, df_ocd_long)
+```
+
+```{r}
+# Display the transformed dataframe
+knitr::kable(df_component_long)
+```
+
+### Optimizing Component Dataframe Method
+
+Similar improvements for component dataframe reshaping method as the dynamic improvements we made to combined dataframe method: make it so the code can run with any number of diagnoses columns
+
+```{r}
+# Function to convert dataframes to long format
+convert_to_long <- function(df, category_name) {
+  value_columns <- names(df)[grepl("count|percent", names(df))]
+  df %>%
+    pivot_longer(
+      cols = all_of(value_columns),
+      names_to = "Metric",
+      values_to = "Value"
+    ) %>%
+    rename(Variable = 1) %>%
+    mutate(
+      Category = category_name,
+      Variable = as.character(Variable),  # Ensure Variable is character
+      Metric = case_when(
+        grepl("count", Metric) ~ "Count",
+        grepl("percent", Metric) ~ "Percent"
+      )
+    ) %>%
+    select(Category, Variable, Metric, Value) %>%
+    pivot_wider(names_from = Metric, values_from = Value)
+}
+
+# Function to apply convert_to_long to a list of dataframes
+convert_all_diagnoses <- function(dfs, diagnosis_names) {
+  long_dfs <- Map(convert_to_long, dfs, diagnosis_names)
+  bind_rows(long_dfs)
+}
+
+# List of diagnosis dataframes and their corresponding names
+diagnosis_dfs <- list(df_adhd, df_anxiety, df_ocd)
+diagnosis_names <- c("ADHD", "Anxiety", "OCD")
+
+# Convert each dataframe to long format
+df_age_long <- convert_to_long(df_age, "Age")
+df_sex_long <- convert_to_long(df_sex, "Sex")
+df_diagnoses_long <- convert_all_diagnoses(diagnosis_dfs, diagnosis_names)
+
+# Combine all long dataframes
+df_component_long_v2 <- bind_rows(df_age_long, df_sex_long, df_diagnoses_long)
+
+# Filter out rows where Variable, Count, and Percent are all NA
+df_component_long_v2 <- df_component_long_v2 %>%
+  filter(!(is.na(Variable) & is.na(Count) & is.na(Percent)))
+```
+
+```{r}
+# Display the transformed dataframe
+knitr::kable(df_component_long_v2)
+```
+
+### Interesting Python Example from Alexey Gilman (DOH)
+
+```{python}
+#| eval: false
+
+import pandas as pd
+df = pd.read_csv("data/combine-df-diff-categoricals.csv")
+
+"""
+index based categories. data format must be consistent with respect to index:
+i.e., rows 0-5 must be category "age", rows 6-7 must be category "sex"
+"""
+
+#define categories and their positions and add as column
+ctgr = {0:"age",
+        1:"age",
+        2:"age",
+        3:"age",
+        4:"age",
+        5:"age",
+        6:"sex",
+        7:"sex",
+        8:"adhd",
+        9:"adhd",
+        10:"adhd",
+        11:"anxiety",
+        12:"anxiety",
+        13:"anxiety",
+        14:"OCD",
+        15:"OCD",
+        16:"OCD"
+       }
+
+df["category"] = pd.Series(ctgr)
+
+#rename redundant category fields
+df = df.rename(columns = {"age_cat":"subcategory",
+                          "Sex":"subcategory",
+                          "CME_MentalHealthDiagnosis_adhd":"subcategory",
+                          "CME_MentalHealthDiagnosis_anxiety":"subcategory",
+                          "CME_MentalHealthDiagnosis_ocd":"subcategory"})
+
+#regex rename percent and count columns
+df.columns = (df.columns
+              .str.replace(r'(?i).*count.*', 'count', regex=True)
+              .str.replace(r'(?i).*percent.*', 'percent', regex=True))
+
+#merge columns by name 
+df = df.T.groupby(df.columns).first().T
+
+#reorder columns 
+df = df[["category", "subcategory", "count", "percent"]]
+```
+
+## Optional: Write out final table for easier use later
+
+```{r}
+#| eval: false
+readr::write_csv(df_combined, "../data/combine-df-diff-categoricals.csv")
+```
+
+```{r}
+#| eval: false
+readr::write_csv(df_component_long, "../data/component-long.csv")
+```

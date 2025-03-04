@@ -1,0 +1,11 @@
+{
+  "notebooks/y-axis-lollipop.qmd": {
+    "y-axis-lollipop.html": "ed17ea81"
+  },
+  "dataframes-bind-rows-pivot.qmd": {
+    "dataframes-bind-rows-pivot.html": "bd8d6e88"
+  },
+  "notebooks/dataframes-bind-rows-pivot.qmd": {
+    "dataframes-bind-rows-pivot.html": "43aa75a4"
+  }
+}
