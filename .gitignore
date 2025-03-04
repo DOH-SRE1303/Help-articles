@@ -1,5 +1,6 @@
 # Inclusions
 !/data
+!/docs
 
 # History files
 .Rhistory
