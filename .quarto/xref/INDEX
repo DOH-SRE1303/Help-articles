@@ -7,5 +7,8 @@
   },
   "notebooks/dataframes-bind-rows-pivot.qmd": {
     "dataframes-bind-rows-pivot.html": "43aa75a4"
+  },
+  "notebooks/reshape-combine-multiple-df-long-format.qmd": {
+    "reshape-combine-multiple-df-long-format.html": "167f9196"
   }
 }

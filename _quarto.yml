@@ -10,3 +10,6 @@ format:
     code-tools: true
     code-fold: true
     code-summary: "Show code"
+    
+filters:
+ - ./lua/code-summary-chunk-label.lua

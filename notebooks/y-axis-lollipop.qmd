@@ -3,15 +3,23 @@
 ## Starting example
 This notebook contains a best approximation for the following example chart using `ggplot2`.
 
-![Lollipop Example Image](../images/Lollipop-example.png)
+<p align="left">
+  <img src="../images/Lollipop-example.png" alt="Example y-axis lollipop chart">
+</p>
+
 
 ### Load required packages
 
 ```{r}
 #| Label: setup
+#| code-summary: Show Setup
 
-# Restore from renv lockfile
+# Restore from renv lockfile with sink to avoid annoying unsuppressable messages
+# Like 'The library is already synchronized with the lockfile.'
+# use dev/null for linux
+sink("NUL")
 renv::restore()
+sink()
 
 # Load libraries
 suppressPackageStartupMessages({
@@ -28,6 +36,7 @@ Our data needs to contain at least two columns:
 
 ```{r}
 #| Label: Simulate Data
+#| code-summary: Show data simulation code
 
 # Simple simulated dataframe with labels and values columns
 data <- data.frame(
@@ -46,6 +55,7 @@ Some slight modifications were necessary to position elements and labels for mat
 
 ```{r}
 #| Label: Data transformations and chart modification prep
+#| code-summary: Show transformations code
 
 # Sort data to match order of example chart
 data <- data %>%
@@ -63,6 +73,7 @@ min_x_start <- min(data[["Percentage"]], na.rm = TRUE) * 0.5  # Dynamic start po
 
 ```{r}
 #| Label: Final recreated y-axis lollipop chart
+#| code-summary: Show final lollipop chart code
 
 # Final y-axis lollipop chart code
 ggplot(data, aes(x = Percentage, y = reorder(Category, desc(Category)))) +
@@ -96,6 +107,7 @@ ggplot(data, aes(x = Percentage, y = reorder(Category, desc(Category)))) +
 
 ```{r}
 #| Label: Functionized chart code
+#| code-summary: Show lollipop chart function
 
 # Required packages
 # library(ggplot2)
@@ -146,6 +158,7 @@ create_y_lollipop <- function(df, percentage_col, label_col, title = "Y-axis Lol
 This functionized `ggplot2` code should produce the same output as above but with a reusable set of input parameters.
 
 ```{r}
+#| code-fold: false
 # Call the function with the dataset
 create_y_lollipop(data, percentage_col = "Percentage", label_col = "Category")
 ```
