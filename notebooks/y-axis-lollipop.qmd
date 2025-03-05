@@ -1,7 +1,7 @@
 ---
 title: Recreating a Y-axis lollipop chart from a report on SUDORS data
-date: "2024-03-02"
-image: ../images/lollipop-example.png
+date: "2025-03-02"
+image: "../images/Lollipop-example.png"
 categories: "data vis"
 ---
 
