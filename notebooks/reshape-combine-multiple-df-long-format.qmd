@@ -1,5 +1,9 @@
-# Reshaping and Combining Multiple DataFrames to Long Format in R
-
+---
+title: "Reshaping and Combining Multiple DataFrames to Long Format in R"
+date: "2025-03-03"
+image: ../images/reshape-combine-multiple-df-long-format.png
+categories: "data processing"
+---
 
 ::: callout-note
 The data presented in these examples are not real, but are simulated to appear realistic. No sensitive information is displayed, used, or otherwise exposed here.

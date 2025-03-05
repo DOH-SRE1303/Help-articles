@@ -1,0 +1,37 @@
+---
+title: "Solutions Listing"
+author: "Skyler Elmstrom"
+format:
+  html:
+    code-tools: false
+    code-fold: false
+listing:
+  contents: notebooks
+  sort:
+    - "date"
+    - "title desc"
+  type: default
+  fields: [image, title, date]
+  categories: unnumbered
+  sort-ui: true
+  image-align: left
+  date-format: iso
+---
+
+This repository contains Quarto notebooks covering my problem + solution processes that I create to support others.
+
+## Articles
+
+<!-- # ```{r} -->
+<!-- # # List .qmd files inside "notebooks/" folder -->
+<!-- # articles <- list.files(path = "notebooks", pattern = "\\.qmd$", full.names = TRUE) -->
+<!-- # ``` -->
+
+<!-- # ```{r results='asis'} -->
+<!-- # # Generate links -->
+<!-- # for (article in articles) { -->
+<!-- #   article_name <- gsub("\\.qmd$", "", basename(article)) # Remove extension -->
+<!-- #   cat(sprintf("- [%s](%s)\n", article_name, article)) -->
+<!-- # } -->
+<!-- # ``` -->
+

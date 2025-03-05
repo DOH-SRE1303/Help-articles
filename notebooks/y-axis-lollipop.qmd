@@ -1,4 +1,9 @@
-# Recreating a Y-axis lollipop chart from a report on SUDORS data
+---
+title: Recreating a Y-axis lollipop chart from a report on SUDORS data
+date: "2024-03-02"
+image: ../images/lollipop-example.png
+categories: "data vis"
+---
 
 ## Starting example
 This notebook contains a best approximation for the following example chart using `ggplot2`.

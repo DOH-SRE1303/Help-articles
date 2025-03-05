@@ -10,5 +10,8 @@
   },
   "notebooks/reshape-combine-multiple-df-long-format.qmd": {
     "reshape-combine-multiple-df-long-format.html": "167f9196"
+  },
+  "index.qmd": {
+    "index.html": "5c00540e"
   }
 }

@@ -2,6 +2,17 @@ project:
   type: website
   output-dir: docs
 
+website:
+  title: "Solutions Library"
+  navbar:
+    left:
+      - href: index.qmd
+        text: "Home"
+      - text: "Articles"
+        menu:
+          - notebooks/y-axis-lollipop.qmd
+          - notebooks/reshape-combine-multiple-df-long-format.qmd
+
 format:
   html:  
     theme: default  # Can be changed to "cosmo", "darkly", "flatly", etc.
@@ -10,6 +21,3 @@ format:
     code-tools: true
     code-fold: true
     code-summary: "Show code"
-    
-filters:
- - ./lua/code-summary-chunk-label.lua
