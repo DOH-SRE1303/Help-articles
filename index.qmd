@@ -8,7 +8,7 @@ format:
 listing:
   contents: notebooks
   sort:
-    - "date"
+    - "date desc"
     - "title desc"
   type: default
   fields: [image, title, date]

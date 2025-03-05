@@ -2,8 +2,8 @@
   {
     "listing": "/index.html",
     "items": [
-      "/notebooks/y-axis-lollipop.html",
-      "/notebooks/reshape-combine-multiple-df-long-format.html"
+      "/notebooks/reshape-combine-multiple-df-long-format.html",
+      "/notebooks/y-axis-lollipop.html"
     ]
   }
 ]
