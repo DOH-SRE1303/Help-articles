@@ -1,0 +1,118 @@
+---
+title: "Diverging Bar Plot"
+---
+
+<p align="left">
+
+<img src="../images/diverging-bar-example.png" alt="Example y-axis lollipop chart"/>
+
+</p>
+
+```{r}
+# Load required libraries
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+})
+```
+
+```{r}
+# Simulate data
+df <- data.frame(
+  Age_Group = c("<15", "15-24", "25-34", "35-44", "45-54", "55-64", "65+"),
+  Female = c(0, 2, 6, 7, 6, 8, 2),  # Female percentages
+  Male = c(0, 7, 15, 16, 14, 14, 3)  # Male percentages
+)
+```
+
+```{r}
+# Define color palette
+colors <- c("Female" = "purple", "Male" = "#008080")
+```
+
+```{r}
+# Convert female values to negative for diverging effect?
+df <- df %>%
+  mutate(Female = -Female)
+
+# Main plot
+ggplot(df, aes(x = Age_Group)) +
+  geom_bar(aes(y = Female, fill = "Female"), stat = "identity") +
+  geom_bar(aes(y = Male, fill = "Male"), stat = "identity") +
+  coord_flip() +  # Flip for horizontal bars
+  scale_fill_manual(values = c("Female" = "purple", "Male" = "#008080")) +
+  labs(title = "Diverging Bar Plot",
+       x = "Age Group",
+       y = "Percentage",
+       fill = "") +
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
+```{r}
+df <- data.frame(
+  Age_Group = c("<15", "15-24", "25-34", "35-44", "45-54", "55-64", "65+"),
+  Female = c(0, 2, 6, 7, 6, 8, 2),  
+  Male = c(0, 7, 15, 16, 14, 14, 3)  
+)
+
+# Define plot colors
+colors <- c("Female" = "#9B30FF", "Male" = "#008080")
+
+# Convert Female values to negative for diverging format
+df <- df %>%
+  mutate(Female = -Female)
+
+# Pivot data for ggplot
+df_long <- df %>%
+  pivot_longer(cols = c("Female", "Male"), names_to = "Gender", values_to = "Percentage")
+
+# Correct text label positioning with an hjust calc
+df_long <- df_long %>%
+  mutate(
+    text_color = ifelse(abs(Percentage) < 5, "black", "white"),  # Black text for small values
+    hjust_adjust = ifelse(Gender == "Male", -0.2, 1.2)  # Adjust text position for small bars
+  )
+
+# Plot
+plot2 <- ggplot(df_long, aes(x = Age_Group, y = Percentage, fill = Gender)) +
+  geom_bar(stat = "identity") +
+
+  # Text labels inside bars (centered) if they fit
+  geom_text(data = df_long %>% filter(abs(Percentage) >= 5),
+            aes(label = paste0(abs(Percentage), "%")),
+            position = position_stack(vjust = 0.5),
+            color = "white", size = 3.5) +  # **Smaller text labels**
+
+  # Text labels outside bars for small values
+  geom_text(data = df_long %>% filter(abs(Percentage) < 5),
+            aes(label = paste0(abs(Percentage), "%"), hjust = hjust_adjust),
+            color = "black", size = 3.5) +  # **Smaller text labels**
+
+  coord_flip() +  # Keep diverging format
+
+  scale_fill_manual(values = colors) +
+
+  # Custom theme adjustments
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text.y = element_text(face = "bold"),
+    axis.text.x = element_blank(),
+    panel.grid = element_blank(),
+    
+    # **Legend positioned at the top, outside the plot**
+    legend.position = "top",
+    legend.justification = "left",
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.text = element_text(size = 10),
+    legend.background = element_rect(fill = "transparent", color = NA)
+  ) +
+
+  # Use circles instead of squares in the legend
+  guides(fill = guide_legend(override.aes = list(shape = 21, size = 5)))
+
+plot2
+```
